@@ -1,25 +1,77 @@
-async function downloadVideo() {
-    const url = document.getElementById('url').value;
-    const resultDiv = document.getElementById('result');
-    
-    if (!url.includes('tiktok.com')) {
-        resultDiv.innerHTML = '<p style="color: red;">URL tidak valid!</p>';
-        return;
-    }
-    
-    resultDiv.innerHTML = '<p>Loading...</p>';
-    
+const axios = require('axios');
+
+async function tiktok2(e) {
     try {
-        // Menggunakan API pihak ketiga (contoh: ssstik.io - risiko tinggi, mungkin tidak berfungsi)
-        const response = await fetch(`https://www.tikwm.com/api/convert?url=${encodeURIComponent(url)}`);
-        const data = await response.json();
-        
-        if (data.videoUrl) {
-            resultDiv.innerHTML = `<a href="${data.videoUrl}" target="_blank">Klik untuk Download</a>`;
-        } else {
-            resultDiv.innerHTML = '<p style="color: red;">Gagal mendapatkan video. Coba URL lain.</p>';
-        }
+        const params = new URLSearchParams();
+        params.set("url", e);
+        params.set("hd", "1");
+
+        const response = await axios({
+            method: "POST",
+            url: "https://tikwm.com/api/",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "Cookie": "current_language=en",
+                "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+            },
+            data: params
+        });
+
+        const a = response.data.data;
+        return {
+            title: a.title,
+            cover: a.cover,
+            origin_cover: a.origin_cover,
+            no_watermark: a.play,
+            watermark: a.wmplay,
+            music: a.music
+        };
     } catch (error) {
-        resultDiv.innerHTML = '<p style="color: red;">Error: API tidak tersedia atau diblokir.</p>';
+        console.error('Error fetching TikTok data:', error);
+        throw error; // Re-throw the error after logging
     }
 }
+
+async function tiktoks(keywords) {
+    try {
+        const response = await axios({
+            method: "POST",
+            url: "https://tikwm.com/api/feed/search",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "Cookie": "current_language=en",
+                "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+            },
+            data: {
+                keywords: keywords,
+                count: 50,
+                cursor: 0,
+                HD: 1
+            }
+        });
+
+        const videos = response.data.data.videos;
+
+        if (videos.length === 0) {
+            throw new Error("Tidak ada video ditemukan.");
+        } else {
+            const randomVideo = videos[Math.floor(Math.random() * videos.length)];
+            return {
+                title: randomVideo.title,
+                cover: randomVideo.cover,
+                origin_cover: randomVideo.origin_cover,
+                no_watermark: randomVideo.play,
+                watermark: randomVideo.wmplay,
+                music: randomVideo.music
+            };
+        }
+    } catch (error) {
+        console.error('Error fetching TikTok videos:', error);
+        throw error; // Re-throw the error after logging
+    }
+}
+
+module.exports = { 
+  tiktok2,
+  tiktoks
+};
